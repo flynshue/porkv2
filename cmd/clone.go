@@ -21,6 +21,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	ref    string
+	create bool
+)
+
 // cloneCmd represents the clone command
 var cloneCmd = &cobra.Command{
 	Use:   "clone",
@@ -42,7 +47,15 @@ to quickly create a Cobra application.`,
 }
 
 func CloneRepo(repo string) error {
-	return nil
+	ghRepo, err := NewGHRepo(repo)
+	if err != nil {
+		return err
+	}
+	if err := ghRepo.Clone(); err != nil {
+		return err
+	}
+	log.Printf("successfully cloned repo %s into %s", repo, ghRepo.Dir)
+	return ghRepo.Checkout(ref, create)
 }
 
 func init() {
@@ -57,4 +70,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// cloneCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	cloneCmd.PersistentFlags().StringVar(&ref, "ref", "", "remote reference to checkout i.e branch")
+	cloneCmd.PersistentFlags().BoolVar(&create, "create", false, "create remote reference if it doesn't exist")
 }
