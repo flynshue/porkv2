@@ -16,10 +16,21 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"strings"
 
+	nap "github.com/flynshuePersonal/napv2"
 	"github.com/spf13/cobra"
 )
+
+type DocsResponse struct {
+	Content string `json:"content"`
+}
 
 // docsCmd represents the docs command
 var docsCmd = &cobra.Command{
@@ -42,7 +53,37 @@ to quickly create a Cobra application.`,
 }
 
 func GetReadme(repo string) error {
+	values := strings.Split(repo, "/")
+	if len(values) != 2 {
+		return fmt.Errorf("must supply repository in owner/project format")
+	}
+	params := map[string]string{"owner": values[0], "project": values[1]}
+	return GithubAPI().Call("docs", params, nil)
+}
+
+func DocsSuccess(resp *http.Response) error {
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	response := &DocsResponse{}
+	if err := json.Unmarshal(b, response); err != nil {
+		return err
+	}
+	docs, err := base64.StdEncoding.DecodeString(response.Content)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(docs))
 	return nil
+}
+
+func DocsResource() nap.RestResource {
+	router := nap.NewRouter()
+	router.RegisterFunc(200, DocsSuccess)
+	docs := nap.NewResource("GET", "/repos/{{.owner}}/{{.project}}/readme", router)
+	return docs
 }
 
 func init() {
