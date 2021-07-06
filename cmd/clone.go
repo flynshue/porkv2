@@ -70,6 +70,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// cloneCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	cloneCmd.PersistentFlags().StringVar(&ref, "ref", "", "remote reference to checkout i.e branch")
+	cloneCmd.PersistentFlags().StringVar(&ref, "ref", "main", "remote reference to checkout i.e branch")
 	cloneCmd.PersistentFlags().BoolVar(&create, "create", false, "create remote reference if it doesn't exist")
 }
