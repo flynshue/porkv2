@@ -16,10 +16,24 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"strings"
 
+	nap "github.com/flynshuePersonal/napv2"
 	"github.com/spf13/cobra"
 )
+
+type SearchResponse struct {
+	Items []SearchResult `json:"items"`
+}
+
+type SearchResult struct {
+	Name string `json:"full_name"`
+}
 
 // searchCmd represents the search command
 var searchCmd = &cobra.Command{
@@ -42,7 +56,32 @@ to quickly create a Cobra application.`,
 }
 
 func SearchByKeywords(keywords []string) error {
+	query := strings.Join(keywords, "+")
+	params := map[string]string{"query": query}
+	return GithubAPI().Call("search", params, nil)
+}
+
+func SearchSuccess(resp *http.Response) error {
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	response := &SearchResponse{}
+	if err := json.Unmarshal(b, response); err != nil {
+		return err
+	}
+	for _, results := range response.Items {
+		fmt.Println(results.Name)
+	}
 	return nil
+}
+
+func SearchResource() nap.RestResource {
+	router := nap.NewRouter()
+	router.RegisterFunc(200, SearchSuccess)
+	search := nap.NewResource("GET", "/search/repositories?q={{.query}}", router)
+	return search
 }
 
 func init() {
